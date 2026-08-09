@@ -1,13 +1,17 @@
 import Database from 'better-sqlite3'
 import { existsSync, mkdirSync, renameSync, rmSync } from 'node:fs'
-import { dirname, join } from 'node:path'
+import { dirname } from 'node:path'
+import { estadoAlmacen, rutaPorDefecto } from '../lib/storage'
 
 /**
- * En Railway hay que apuntar esto al volumen (`DB_PATH=/data/pokevault.sqlite`).
- * El disco por defecto es efímero: sin volumen, cada despliegue se lleva por
- * delante el histórico de precios, que es lo único que no se puede reconstruir.
+ * Dónde vive la base.
+ *
+ * Si Railway tiene un volumen montado, por defecto vamos ahí sin que nadie
+ * tenga que configurar nada: el disco del contenedor es efímero y cada
+ * despliegue se llevaría por delante el histórico de precios, que es lo único
+ * que no se puede reconstruir.
  */
-export const DB_PATH = process.env.DB_PATH ?? join(process.cwd(), 'data', 'pokevault.sqlite')
+export const DB_PATH = process.env.DB_PATH ?? rutaPorDefecto()
 
 /** Fichero que deja `/api/admin/restore` para que lo recojamos al arrancar. */
 export const INCOMING_PATH = `${DB_PATH}.incoming`
@@ -27,6 +31,17 @@ let conexion: Database.Database | null = null
 
 function abrir(): Database.Database {
   mkdirSync(dirname(DB_PATH), { recursive: true })
+
+  // Avisar en los logs si los datos van a un disco que no sobrevive al
+  // próximo despliegue. Es un fallo silencioso: todo funciona hasta que
+  // redespliegas y descubres que ya no está.
+  const almacen = estadoAlmacen(DB_PATH)
+  if (almacen.persistencia === 'efimero') {
+    console.warn(
+      `[db] AVISO: ${DB_PATH} NO está en un volumen. Los datos se perderán en el próximo despliegue.` +
+        (almacen.sugerencia ? ` → ${almacen.sugerencia}` : ''),
+    )
+  }
 
   // Si hay una base subida esperando, se coloca ANTES de abrir nada. Hacer el
   // cambiazo con la conexión abierta corrompe la base. Los `-wal` y `-shm`

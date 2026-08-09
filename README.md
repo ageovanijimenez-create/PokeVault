@@ -96,20 +96,27 @@ La tabla `ingest_runs` guarda cada ejecución con su estado (`ok`, `skipped`,
 
 ## Desplegar en Railway
 
-### 1. Volumen
+### 1. Volumen — esto es lo que más caro sale olvidar
 
 El disco de Railway es **efímero**: sin volumen, cada despliegue se lleva por
 delante el histórico de precios, que es lo único que no se puede reconstruir.
+Y es un fallo silencioso — todo parece funcionar hasta que redespliegas y
+descubres que el catálogo ha vuelto a empezar de cero.
 
-- Añade un volumen al servicio, montado en `/data`.
-- Variable de entorno: `DB_PATH=/data/pokevault.sqlite`
+Añade un volumen al servicio (Settings → Volumes). **No hace falta configurar
+`DB_PATH`**: Railway publica `RAILWAY_VOLUME_MOUNT_PATH` cuando hay un volumen
+montado, y la base se va sola ahí.
+
+Si algo está mal puesto, el panel lo dice en rojo nada más entrar y los logs
+sacan un `[db] AVISO`. No hay que adivinarlo.
 
 ### 2. Variables
 
 ```
-DB_PATH=/data/pokevault.sqlite
 ADMIN_TOKEN=<algo largo y aleatorio>
 ```
+
+Y ya. `DB_PATH` solo si quieres forzar una ruta distinta a la del volumen.
 
 ### 3. Llenar el catálogo
 

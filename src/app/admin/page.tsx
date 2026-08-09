@@ -3,6 +3,7 @@ import { existsSync, statSync } from 'node:fs'
 import { adminEnabled, isAdmin } from '@/lib/admin'
 import { getAdminOverview, listBackfillPending, listRuns, listUnmapped } from '@/db/queries'
 import { DB_PATH, INCOMING_PATH } from '@/db/index'
+import { estadoAlmacen } from '@/lib/storage'
 import { RestoreForm } from '@/components/RestoreForm'
 import { JobsPanel } from '@/components/JobsPanel'
 import { listJobs } from '@/lib/jobs'
@@ -57,6 +58,7 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
   const subidaPendiente = existsSync(INCOMING_PATH)
     ? { bytes: statSync(INCOMING_PATH).size }
     : null
+  const almacen = estadoAlmacen(DB_PATH)
 
   return (
     <>
@@ -77,6 +79,31 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
           </span>
         </div>
       </div>
+
+      {almacen.persistencia === 'efimero' && (
+        <div className="alert">
+          <strong>Los datos no sobreviven al próximo despliegue.</strong>
+          <p>
+            La base está en <code>{almacen.dbPath}</code>, que es disco del contenedor, no un
+            volumen. Cada vez que redespliegues se borra: el catálogo se reconstruye solo, pero el{' '}
+            <b>histórico de precios no</b> — ese no se puede recuperar.
+          </p>
+          <p>
+            {almacen.volumeMountPath ? (
+              <>
+                Hay un volumen montado en <code>{almacen.volumeMountPath}</code>, pero{' '}
+                <code>DB_PATH</code> apunta fuera. Corrígelo con{' '}
+                <code>{almacen.sugerencia}</code>.
+              </>
+            ) : (
+              <>
+                No hay ningún volumen en este servicio. Añádelo en Railway (Settings → Volumes) y,
+                si dejas <code>DB_PATH</code> sin definir, la base irá sola al volumen.
+              </>
+            )}
+          </p>
+        </div>
+      )}
 
       <h2 className="section">Mantenimiento</h2>
       <p className="hint" style={{ marginTop: -4, marginBottom: 12 }}>

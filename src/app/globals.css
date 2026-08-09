@@ -630,6 +630,43 @@ tbody tr:hover {
   border-color: color-mix(in srgb, var(--warn) 35%, transparent);
 }
 
+/* ── Aviso serio ────────────────────────────────────────────────────────── */
+
+.alert {
+  border: 1px solid color-mix(in srgb, var(--down) 45%, var(--border));
+  border-radius: var(--r-panel);
+  background: color-mix(in srgb, var(--down) 7%, var(--surface));
+  padding: 16px 18px;
+  margin: 24px 0 8px;
+}
+.alert strong {
+  display: block;
+  color: var(--down);
+  font-size: var(--t-md);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin-bottom: 6px;
+}
+.alert p {
+  margin: 6px 0 0;
+  font-size: var(--t-sm);
+  color: var(--text-2);
+  max-width: 78ch;
+}
+.alert code {
+  background: var(--n-950);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-family: ui-monospace, 'SF Mono', 'Cascadia Mono', Menlo, monospace;
+  font-size: var(--t-xs);
+  color: var(--text);
+}
+.alert b {
+  color: var(--text);
+  font-weight: 600;
+}
+
 /* ── Tareas de mantenimiento ────────────────────────────────────────────── */
 
 .jobs-buttons {
