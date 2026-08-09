@@ -55,6 +55,27 @@ interface FileEnvelope {
 type ProductFile = FileEnvelope & { products: CmProduct[] }
 type PriceFile = FileEnvelope & { priceGuides: CmPrice[] }
 
+/**
+ * Comprueba si hay volcado nuevo sin bajarse los 15 MB.
+ *
+ * El bucket devuelve `ETag` y `Last-Modified`, así que una petición HEAD basta
+ * para saber si el fichero ha cambiado. Esto es lo que permite que el
+ * planificador dentro del servicio web mire cada hora sin gastar ancho de
+ * banda: 400 bytes en vez de 15 MB.
+ */
+export async function peekPrices(game?: number): Promise<{ etag: string | null; lastModified: string | null }> {
+  try {
+    const res = await fetch(urls(game).prices, { method: 'HEAD' })
+    if (!res.ok) return { etag: null, lastModified: null }
+    return {
+      etag: res.headers.get('etag'),
+      lastModified: res.headers.get('last-modified'),
+    }
+  } catch {
+    return { etag: null, lastModified: null }
+  }
+}
+
 async function getJson<T>(url: string, attempt = 1): Promise<T> {
   try {
     const res = await fetch(url, { headers: { 'accept-encoding': 'gzip' } })

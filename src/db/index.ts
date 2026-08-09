@@ -1,10 +1,34 @@
 import Database from 'better-sqlite3'
-import { mkdirSync } from 'node:fs'
+import { existsSync, mkdirSync, renameSync, rmSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 
-const DB_PATH = process.env.DB_PATH ?? join(process.cwd(), 'data', 'pokevault.sqlite')
+/**
+ * En Railway hay que apuntar esto al volumen (`DB_PATH=/data/pokevault.sqlite`).
+ * El disco por defecto es efímero: sin volumen, cada despliegue se lleva por
+ * delante el histórico de precios, que es lo único que no se puede reconstruir.
+ */
+export const DB_PATH = process.env.DB_PATH ?? join(process.cwd(), 'data', 'pokevault.sqlite')
+
+/** Fichero que deja `/api/admin/restore` para que lo recojamos al arrancar. */
+export const INCOMING_PATH = `${DB_PATH}.incoming`
 
 mkdirSync(dirname(DB_PATH), { recursive: true })
+
+/**
+ * Si hay una base subida esperando, se coloca ANTES de abrir la conexión.
+ *
+ * Hacer el cambiazo con la base ya abierta corrompe la conexión, así que el
+ * intercambio se hace aquí, en el arranque, cuando todavía no hay nada
+ * abierto. Los `-wal` y `-shm` viejos hay que borrarlos: pertenecen a la base
+ * anterior y aplicarlos sobre la nueva la destroza.
+ */
+if (existsSync(INCOMING_PATH)) {
+  for (const suffix of ['', '-wal', '-shm']) {
+    rmSync(`${DB_PATH}${suffix}`, { force: true })
+  }
+  renameSync(INCOMING_PATH, DB_PATH)
+  console.log('[db] Base restaurada desde la subida pendiente')
+}
 
 export const db = new Database(DB_PATH)
 db.pragma('journal_mode = WAL')
@@ -100,4 +124,24 @@ CREATE TABLE IF NOT EXISTS image_backfill (
   matched       INTEGER,
   total         INTEGER
 );
+
+-- Cuatro cosas sueltas que no merecen tabla propia. Ahora mismo solo el ETag
+-- del último price guide visto, para que el planificador no se baje 15 MB
+-- cada vez que arranca el servicio.
+CREATE TABLE IF NOT EXISTS meta (
+  key   TEXT PRIMARY KEY,
+  value TEXT
+);
 `)
+
+export const getMeta = (key: string): string | null =>
+  (db.prepare(`SELECT value FROM meta WHERE key = ?`).get(key) as { value: string } | undefined)
+    ?.value ?? null
+
+export const setMeta = (key: string, value: string) =>
+  db
+    .prepare(
+      `INSERT INTO meta (key, value) VALUES (?, ?)
+       ON CONFLICT(key) DO UPDATE SET value = excluded.value`,
+    )
+    .run(key, value)

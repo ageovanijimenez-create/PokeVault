@@ -1,5 +1,10 @@
 import type { Metadata } from 'next'
+import { startScheduler } from '@/lib/scheduler'
 import './globals.css'
+
+// Arranca la ingesta periódica. Tiene su propia guarda: solo lo hace una vez y
+// solo en producción (o con SCHEDULER=on). Ver src/lib/scheduler.ts.
+startScheduler()
 
 export const metadata: Metadata = {
   title: 'PokeVault — precios Pokémon TCG en Europa',

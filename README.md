@@ -77,20 +77,69 @@ entre ~28 millones de filas al año y unos pocos millones.
 > Un hueco en `price_history` significa "ese día no cambió". Al leer la serie
 > hay que arrastrar el último valor conocido, no interpretarlo como un cero.
 
-### Ponerlo en automático en Railway
+### En Railway va dentro de la propia web
 
-Un servicio de tipo *cron* con el comando `npm run ingest` y esta expresión:
+No hay servicio de cron aparte, y no por pereza: **un volumen de Railway solo
+se puede montar en un servicio**. La base vive en el volumen que tiene montado
+la web, así que un cron separado no la vería.
 
-```
-0 5 * * *
-```
+El planificador (`src/lib/scheduler.ts`) arranca con la app y mira cada hora si
+hay volcado nuevo. Para no bajarse 15 MB cada vez, primero hace una petición
+`HEAD` y compara el `ETag`: si no ha cambiado, no descarga ni un byte.
 
-Las 05:00 UTC dan margen de sobra sobre el volcado de las ~02:45 CET. Si algún
-día Cardmarket se retrasa, el `createdAt` viejo hace que no se procese nada y
-la ejecución del día siguiente lo arregla.
+Se apaga con `SCHEDULER=off` y se fuerza en local con `SCHEDULER=on`.
 
 La tabla `ingest_runs` guarda cada ejecución con su estado (`ok`, `skipped`,
-`error`), así que se puede comprobar que el cron va bien sin entrar a mirar.
+`error`), y se ve en `/admin` sin entrar a mirar logs.
+
+---
+
+## Desplegar en Railway
+
+### 1. Volumen
+
+El disco de Railway es **efímero**: sin volumen, cada despliegue se lleva por
+delante el histórico de precios, que es lo único que no se puede reconstruir.
+
+- Añade un volumen al servicio, montado en `/data`.
+- Variable de entorno: `DB_PATH=/data/pokevault.sqlite`
+
+### 2. Variables
+
+```
+DB_PATH=/data/pokevault.sqlite
+ADMIN_TOKEN=<algo largo y aleatorio>
+```
+
+### 3. Llenar el catálogo
+
+Reconstruirlo entero desde cero funciona (`ingest` + `map-sets` + `names-en` +
+`classify` + `backfill-images`), pero el backfill son ~40.000 peticiones a
+TCGdex, que es un proyecto comunitario gratuito. Si ya tienes la base montada
+en local, súbela y no le hagas repetir el trabajo:
+
+```bash
+gzip -c data/pokevault.sqlite > db.gz
+
+curl -X POST https://<tu-app>.up.railway.app/api/admin/restore \
+     -H "Cookie: pc_admin=<tu ADMIN_TOKEN>" \
+     -H "Content-Encoding: gzip" \
+     --data-binary @db.gz
+```
+
+Los 26 MB quedan en unos 7 comprimidos. El endpoint **valida la base antes de
+aceptarla** (que sea SQLite, que tenga las tablas, que traiga productos) y la
+deja en espera como `.incoming`. No la cambia en caliente: hacer el cambiazo
+con la conexión abierta corrompe la base.
+
+**Después hay que reiniciar el servicio.** El intercambio lo hace
+`src/db/index.ts` al arrancar, cuando todavía no hay ninguna conexión abierta.
+
+Para comprobar si hay una subida esperando:
+
+```bash
+curl https://<tu-app>.up.railway.app/api/admin/restore -H "Cookie: pc_admin=<token>"
+```
 
 ---
 
