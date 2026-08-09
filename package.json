@@ -1,0 +1,30 @@
+{
+  "name": "pokevault",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "ingest": "tsx src/scripts/ingest.ts",
+    "map-sets": "tsx src/scripts/map-sets.ts",
+    "names-en": "tsx src/scripts/names-en.ts",
+    "backfill-images": "tsx src/scripts/backfill-images.ts",
+    "classify": "tsx src/scripts/classify.ts"
+  },
+  "dependencies": {
+    "better-sqlite3": "^13.0.3",
+    "next": "^16.3.0",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^9.6.0",
+    "@types/node": "^26.2.0",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.4",
+    "tsx": "^4.23.11",
+    "typescript": "^7.0.2"
+  }
+}

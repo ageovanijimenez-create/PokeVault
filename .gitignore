@@ -1,0 +1,14 @@
+node_modules/
+.next/
+out/
+
+# La base es dato derivado: se reconstruye con `npm run ingest`.
+# Ojo con -wal y -shm: son de SQLite en modo WAL y llevan datos reales dentro.
+data/
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+
+.env
+.env.local
+*.log
