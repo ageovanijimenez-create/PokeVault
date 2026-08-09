@@ -12,3 +12,7 @@ data/
 .env
 .env.local
 *.log
+
+# Next lo regenera y cambia entre dev y build: solo genera ruido.
+next-env.d.ts
+*.tsbuildinfo
