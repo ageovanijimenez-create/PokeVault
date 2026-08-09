@@ -12,32 +12,49 @@ export const DB_PATH = process.env.DB_PATH ?? join(process.cwd(), 'data', 'pokev
 /** Fichero que deja `/api/admin/restore` para que lo recojamos al arrancar. */
 export const INCOMING_PATH = `${DB_PATH}.incoming`
 
-mkdirSync(dirname(DB_PATH), { recursive: true })
-
 /**
- * Si hay una base subida esperando, se coloca ANTES de abrir la conexión.
+ * La conexión se abre PEREZOSAMENTE, en el primer uso real.
  *
- * Hacer el cambiazo con la base ya abierta corrompe la conexión, así que el
- * intercambio se hace aquí, en el arranque, cuando todavía no hay nada
- * abierto. Los `-wal` y `-shm` viejos hay que borrarlos: pertenecen a la base
- * anterior y aplicarlos sobre la nueva la destroza.
+ * Abrirla al importar el módulo tumbaba el build: `next build` lanza nueve
+ * procesos en paralelo para recolectar la configuración de las rutas, los
+ * nueve importaban este fichero, y los nueve intentaban crear el esquema a la
+ * vez sobre el mismo SQLite → "database is locked".
+ *
+ * Con la apertura diferida, el build solo lee los módulos y no toca el disco:
+ * la base no se abre hasta que llega una petición de verdad.
  */
-if (existsSync(INCOMING_PATH)) {
-  for (const suffix of ['', '-wal', '-shm']) {
-    rmSync(`${DB_PATH}${suffix}`, { force: true })
-  }
-  renameSync(INCOMING_PATH, DB_PATH)
-  console.log('[db] Base restaurada desde la subida pendiente')
-}
+let conexion: Database.Database | null = null
 
-export const db = new Database(DB_PATH)
-db.pragma('journal_mode = WAL')
+function abrir(): Database.Database {
+  mkdirSync(dirname(DB_PATH), { recursive: true })
+
+  // Si hay una base subida esperando, se coloca ANTES de abrir nada. Hacer el
+  // cambiazo con la conexión abierta corrompe la base. Los `-wal` y `-shm`
+  // viejos hay que borrarlos: son de la base anterior y aplicarlos sobre la
+  // nueva la destrozan.
+  if (existsSync(INCOMING_PATH)) {
+    for (const suffix of ['', '-wal', '-shm']) {
+      rmSync(`${DB_PATH}${suffix}`, { force: true })
+    }
+    renameSync(INCOMING_PATH, DB_PATH)
+    console.log('[db] Base restaurada desde la subida pendiente')
+  }
+
+  const db = new Database(DB_PATH)
+  db.pragma('journal_mode = WAL')
+  // Si otro proceso está escribiendo, esperar en vez de fallar en el acto.
+  db.pragma('busy_timeout = 10000')
+
+  crearEsquema(db)
+  return db
+}
 
 /**
  * Esquema. SQL estándar a propósito: mover esto a Postgres en Railway es
  * cambiar INTEGER PRIMARY KEY por BIGINT y poco más.
  */
-db.exec(`
+function crearEsquema(db: Database.Database) {
+  db.exec(`
 CREATE TABLE IF NOT EXISTS expansions (
   id_expansion  INTEGER PRIMARY KEY,   -- id de expansión de Cardmarket
   tcgdex_set_id TEXT,                  -- 'me05', 'sv08'... null si aún no está mapeada
@@ -93,31 +110,7 @@ CREATE TABLE IF NOT EXISTS ingest_runs (
   status            TEXT,
   error             TEXT
 );
-`)
 
-/** Añade una columna solo si aún no existe. Evita tener que borrar la base. */
-function addColumn(table: string, column: string, type: string) {
-  const cols = db.prepare(`PRAGMA table_info(${table})`).all() as { name: string }[]
-  if (!cols.some((c) => c.name === column)) {
-    db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${type}`)
-  }
-}
-
-// Idioma de TCGdex en el que se resolvió el set ('es' | 'en' | 'ja'). Lo usamos
-// para saber qué sets son japoneses y buscarles el nombre oficial en inglés.
-addColumn('expansions', 'lang', 'TEXT')
-addColumn('expansions', 'name_en', 'TEXT')
-
-// Qué clase de "expansión" es realmente. Cardmarket mete en el mismo saco los
-// sets de verdad y un montón de agrupaciones que no lo son. Ver `classify.ts`.
-addColumn('expansions', 'kind', 'TEXT')
-
-// Imagen y carta de TCGdex asociadas al producto de Cardmarket.
-addColumn('products', 'image', 'TEXT')
-addColumn('products', 'tcgdex_card_id', 'TEXT')
-
-// Marca de qué sets ya tienen las imágenes de sus cartas descargadas.
-db.exec(`
 CREATE TABLE IF NOT EXISTS image_backfill (
   tcgdex_set_id TEXT PRIMARY KEY,
   done_at       TEXT,
@@ -133,6 +126,41 @@ CREATE TABLE IF NOT EXISTS meta (
   value TEXT
 );
 `)
+
+  /** Añade una columna solo si aún no existe. Evita tener que borrar la base. */
+  const addColumn = (table: string, column: string, type: string) => {
+    const cols = db.prepare(`PRAGMA table_info(${table})`).all() as { name: string }[]
+    if (!cols.some((c) => c.name === column)) {
+      db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${type}`)
+    }
+  }
+
+  // Idioma de TCGdex del que salió el set ('en' | 'ja'): de ahí vienen sus
+  // cartas y sus imágenes, y sirve para saber cuáles son japoneses.
+  addColumn('expansions', 'lang', 'TEXT')
+  addColumn('expansions', 'name_en', 'TEXT')
+
+  // Qué clase de "expansión" es realmente. Cardmarket mete en el mismo saco los
+  // sets de verdad y un montón de agrupaciones que no lo son. Ver `classify.ts`.
+  addColumn('expansions', 'kind', 'TEXT')
+
+  // Imagen y carta de TCGdex asociadas al producto de Cardmarket.
+  addColumn('products', 'image', 'TEXT')
+  addColumn('products', 'tcgdex_card_id', 'TEXT')
+}
+
+/**
+ * Se usa igual que la conexión de siempre (`db.prepare(...)`), pero por dentro
+ * no existe hasta que alguien la toca. El Proxy es lo que permite mantener la
+ * apertura diferida sin cambiar las decenas de usos que hay repartidos.
+ */
+export const db = new Proxy({} as Database.Database, {
+  get(_target, prop, receiver) {
+    conexion ??= abrir()
+    const valor = Reflect.get(conexion, prop, receiver)
+    return typeof valor === 'function' ? valor.bind(conexion) : valor
+  },
+})
 
 export const getMeta = (key: string): string | null =>
   (db.prepare(`SELECT value FROM meta WHERE key = ?`).get(key) as { value: string } | undefined)

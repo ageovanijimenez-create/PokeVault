@@ -2,10 +2,6 @@ import type { Metadata } from 'next'
 import { startScheduler } from '@/lib/scheduler'
 import './globals.css'
 
-// Arranca la ingesta periódica. Tiene su propia guarda: solo lo hace una vez y
-// solo en producción (o con SCHEDULER=on). Ver src/lib/scheduler.ts.
-startScheduler()
-
 export const metadata: Metadata = {
   title: 'PokeVault — precios Pokémon TCG en Europa',
   description:
@@ -13,6 +9,11 @@ export const metadata: Metadata = {
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+  // Dentro del componente, no en el ámbito del módulo: así solo arranca cuando
+  // se renderiza una página de verdad, no cuando el build lee el fichero.
+  // Tiene su propia guarda para no repetirse. Ver src/lib/scheduler.ts.
+  startScheduler()
+
   return (
     <html lang="es">
       <body>

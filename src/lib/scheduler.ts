@@ -63,6 +63,12 @@ async function check() {
 
 export function startScheduler() {
   if (started) return
+
+  // Durante `next build` este módulo se carga en cada uno de los procesos que
+  // recolectan la configuración de las rutas. Sin esta guarda arrancaba una
+  // ingesta por proceso, en mitad del build.
+  if (process.env.NEXT_PHASE === 'phase-production-build') return
+
   // En local estorba: se activa en producción, o a mano con SCHEDULER=on.
   const enabled =
     process.env.SCHEDULER === 'on' ||
