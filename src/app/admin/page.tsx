@@ -4,6 +4,8 @@ import { adminEnabled, isAdmin } from '@/lib/admin'
 import { getAdminOverview, listBackfillPending, listRuns, listUnmapped } from '@/db/queries'
 import { DB_PATH, INCOMING_PATH } from '@/db/index'
 import { RestoreForm } from '@/components/RestoreForm'
+import { JobsPanel } from '@/components/JobsPanel'
+import { listJobs } from '@/lib/jobs'
 import { eur, fechaCorta, num } from '@/lib/format'
 
 export const dynamic = 'force-dynamic'
@@ -51,6 +53,7 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
   const unmapped = listUnmapped(30)
   const pending = listBackfillPending(30)
   const runs = listRuns(8)
+  const jobs = listJobs(8)
   const subidaPendiente = existsSync(INCOMING_PATH)
     ? { bytes: statSync(INCOMING_PATH).size }
     : null
@@ -74,6 +77,13 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
           </span>
         </div>
       </div>
+
+      <h2 className="section">Mantenimiento</h2>
+      <p className="hint" style={{ marginTop: -4, marginBottom: 12 }}>
+        Cuando sale un set nuevo esto se lanza <b>solo</b>, después de la ingesta diaria. Los
+        botones son por si quieres adelantarlo o repetir algo suelto.
+      </p>
+      <JobsPanel inicial={jobs} />
 
       <h2 className="section">Restaurar la base</h2>
       <p className="hint" style={{ marginTop: -4, marginBottom: 12 }}>

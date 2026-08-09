@@ -630,6 +630,58 @@ tbody tr:hover {
   border-color: color-mix(in srgb, var(--warn) 35%, transparent);
 }
 
+/* ── Tareas de mantenimiento ────────────────────────────────────────────── */
+
+.jobs-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.jobs-buttons button {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-size: var(--t-sm);
+  font-family: inherit;
+  font-weight: 500;
+  padding: 7px 14px;
+  border-radius: var(--r-control);
+  cursor: pointer;
+  transition: border-color 0.12s var(--ease), background 0.12s var(--ease);
+}
+.jobs-buttons button:hover:not(:disabled) {
+  border-color: var(--border-strong);
+  background: var(--surface-2);
+}
+.jobs-buttons button.primary {
+  background: var(--n-000);
+  border-color: var(--n-000);
+  color: var(--n-950);
+  font-weight: 600;
+}
+.jobs-buttons button.primary:hover:not(:disabled) {
+  background: var(--n-120);
+  border-color: var(--n-120);
+}
+.jobs-buttons button:disabled {
+  color: var(--text-3);
+  background: transparent;
+  border-color: var(--border);
+  cursor: not-allowed;
+}
+.jobs-err {
+  color: var(--down);
+  font-size: var(--t-sm);
+  margin: 12px 0 0;
+}
+.jobs-detail {
+  color: var(--text-2);
+  max-width: 420px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* ── Restaurar base ─────────────────────────────────────────────────────── */
 
 .restore {

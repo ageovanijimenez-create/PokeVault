@@ -184,11 +184,46 @@ Contraste verificado sobre el resultado renderizado: todo el texto pasa 4.5:1.
 
 ---
 
+## Cuando sale un set nuevo
+
+No hay que hacer nada. La ingesta diaria trae sus cartas y precios, y si
+detecta expansiones sin identificar **encadena el mantenimiento sola**:
+
+```
+ingesta diaria
+   └── ¿hay expansiones nuevas?
+         └── mantenimiento
+               ├── identificar expansiones   (map-sets)
+               ├── nombre inglés si es japonés (names-en)
+               ├── reclasificar               (classify)
+               └── descargar imágenes         (backfill-images)
+```
+
+Es viable porque para un set nuevo el trabajo son segundos: `map-sets` sondea
+uno o dos sets y el backfill baja ~200 cartas. Lo que tardaba 40 minutos era
+solo la carga inicial de los 196 sets.
+
+Los mismos botones están en `/admin` por si quieres adelantarlo o repetir una
+pieza suelta, y en consola siguen funcionando los `npm run` de siempre. Solo
+corre una tarea a la vez: dos escribiendo sobre las mismas tablas se pisarían.
+
+### Los sets que nunca casan
+
+Unos 190 sets de TCGdex no tienen equivalente en Cardmarket (chinos, promos
+sin enlace). Sin cuidado, cada ejecución automática los reintentaba: casi mil
+peticiones diarias a TCGdex para llegar siempre al mismo sitio. La tabla
+`set_attempts` guarda esos intentos y no se repiten hasta pasados 14 días, por
+si TCGdex acaba añadiendo el enlace. Para forzarlos: `npm run map-sets -- force`.
+
+---
+
 ## Panel privado
 
 En `/admin`, protegido por token. Muestra la cobertura del catálogo, el estado
-de las últimas ingestas, qué sets están pendientes de imágenes y —lo más
-útil— **qué expansiones quedan por identificar**, ordenadas por volumen.
+de las últimas ingestas y tareas, qué sets están pendientes de imágenes y
+—lo más útil— **qué expansiones quedan por identificar**, ordenadas por
+volumen. Desde ahí se lanzan también las tareas de mantenimiento y se puede
+restaurar la base.
 
 Se activa poniendo `ADMIN_TOKEN` en `.env.local`:
 

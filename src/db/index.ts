@@ -118,6 +118,31 @@ CREATE TABLE IF NOT EXISTS image_backfill (
   total         INTEGER
 );
 
+-- Sets de TCGdex que se intentaron mapear y no casaron con ninguna expansión
+-- de Cardmarket (chinos, promos que TCGdex no enlaza...). Sin esto, cada
+-- ejecución automática volvía a sondear ~190 sets fallidos: casi mil
+-- peticiones diarias a TCGdex para nada.
+CREATE TABLE IF NOT EXISTS set_attempts (
+  tcgdex_set_id TEXT NOT NULL,
+  lang          TEXT NOT NULL,
+  last_try      TEXT,
+  tries         INTEGER NOT NULL DEFAULT 1,
+  PRIMARY KEY (tcgdex_set_id, lang)
+);
+
+-- Tareas de mantenimiento lanzadas desde el panel o encadenadas tras la
+-- ingesta. Se guardan aquí para poder seguirlas desde la web.
+CREATE TABLE IF NOT EXISTS jobs (
+  id          INTEGER PRIMARY KEY AUTOINCREMENT,
+  name        TEXT NOT NULL,
+  started_at  TEXT NOT NULL,
+  finished_at TEXT,
+  status      TEXT NOT NULL,          -- running | ok | error
+  detail      TEXT,                   -- última línea de progreso
+  error       TEXT,
+  trigger     TEXT                    -- manual | auto
+);
+
 -- Cuatro cosas sueltas que no merecen tabla propia. Ahora mismo solo el ETag
 -- del último price guide visto, para que el planificador no se baje 15 MB
 -- cada vez que arranca el servicio.

@@ -22,6 +22,7 @@
 import { getMeta, setMeta } from '../db/index'
 import { peekPrices } from './cardmarket'
 import { runIngest } from './ingest'
+import { hayTrabajoPendiente, startJob } from './jobs'
 
 /** Cada cuánto miramos si hay volcado nuevo. */
 const CHECK_EVERY_MS = 60 * 60 * 1000
@@ -49,6 +50,14 @@ async function check() {
       log(
         `volcado ${result.createdAt} · ${result.changed?.toLocaleString('es')} cambios en ${result.seconds}s`,
       )
+
+      // Si Cardmarket ha metido un set nuevo, aparecen expansiones sin nombre.
+      // El mantenimiento las identifica, las clasifica y les baja las fotos,
+      // así que un set nuevo entra solo sin que nadie toque nada.
+      if (hayTrabajoPendiente()) {
+        log('hay expansiones nuevas: lanzando mantenimiento')
+        startJob('mantenimiento', 'auto')
+      }
     } else if (result.status === 'error') {
       log(`ERROR: ${result.error}`)
     }
