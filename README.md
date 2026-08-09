@@ -116,30 +116,28 @@ ADMIN_TOKEN=<algo largo y aleatorio>
 Reconstruirlo entero desde cero funciona (`ingest` + `map-sets` + `names-en` +
 `classify` + `backfill-images`), pero el backfill son ~40.000 peticiones a
 TCGdex, que es un proyecto comunitario gratuito. Si ya tienes la base montada
-en local, súbela y no le hagas repetir el trabajo:
+en local, súbela y no le hagas repetir el trabajo.
+
+**Desde el panel:** entra en `/admin`, sección *Restaurar la base*, elige el
+fichero `data/pokevault.sqlite` y dale a subir. Admite el `.sqlite` tal cual o
+comprimido en `.gz` (26 MB se quedan en 7), y detecta cuál es por el propio
+fichero, no por la extensión.
+
+**O a mano**, si prefieres:
 
 ```bash
-gzip -c data/pokevault.sqlite > db.gz
-
 curl -X POST https://<tu-app>.up.railway.app/api/admin/restore \
      -H "Cookie: pc_admin=<tu ADMIN_TOKEN>" \
-     -H "Content-Encoding: gzip" \
-     --data-binary @db.gz
+     --data-binary @data/pokevault.sqlite
 ```
 
-Los 26 MB quedan en unos 7 comprimidos. El endpoint **valida la base antes de
-aceptarla** (que sea SQLite, que tenga las tablas, que traiga productos) y la
-deja en espera como `.incoming`. No la cambia en caliente: hacer el cambiazo
-con la conexión abierta corrompe la base.
+Por cualquiera de las dos vías **se valida antes de aceptarla** (que sea
+SQLite, que tenga las tablas, que traiga productos) y se deja en espera como
+`.incoming`.
 
-**Después hay que reiniciar el servicio.** El intercambio lo hace
-`src/db/index.ts` al arrancar, cuando todavía no hay ninguna conexión abierta.
-
-Para comprobar si hay una subida esperando:
-
-```bash
-curl https://<tu-app>.up.railway.app/api/admin/restore -H "Cookie: pc_admin=<token>"
-```
+**Después hay que reiniciar el servicio.** No se cambia en caliente porque
+sustituir el fichero con la conexión abierta corrompe la base; el intercambio
+lo hace `src/db/index.ts` al arrancar, cuando aún no hay nada abierto.
 
 ---
 

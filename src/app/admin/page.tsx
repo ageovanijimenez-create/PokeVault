@@ -1,6 +1,9 @@
 import { notFound } from 'next/navigation'
+import { existsSync, statSync } from 'node:fs'
 import { adminEnabled, isAdmin } from '@/lib/admin'
 import { getAdminOverview, listBackfillPending, listRuns, listUnmapped } from '@/db/queries'
+import { DB_PATH, INCOMING_PATH } from '@/db/index'
+import { RestoreForm } from '@/components/RestoreForm'
 import { eur, fechaCorta, num } from '@/lib/format'
 
 export const dynamic = 'force-dynamic'
@@ -48,6 +51,9 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
   const unmapped = listUnmapped(30)
   const pending = listBackfillPending(30)
   const runs = listRuns(8)
+  const subidaPendiente = existsSync(INCOMING_PATH)
+    ? { bytes: statSync(INCOMING_PATH).size }
+    : null
 
   return (
     <>
@@ -68,6 +74,14 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
           </span>
         </div>
       </div>
+
+      <h2 className="section">Restaurar la base</h2>
+      <p className="hint" style={{ marginTop: -4, marginBottom: 12 }}>
+        Sube un fichero <code>.sqlite</code> (o su <code>.gz</code>) construido en local, para no
+        rehacer aquí las ~40.000 peticiones de imágenes a TCGdex. Se valida antes de aceptarla y se
+        coloca en el siguiente reinicio, nunca en caliente. Destino: <code>{DB_PATH}</code>
+      </p>
+      <RestoreForm pendiente={subidaPendiente} />
 
       <h2 className="section">Cobertura</h2>
       <div className="cover">

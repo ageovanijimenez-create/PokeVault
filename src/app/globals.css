@@ -630,6 +630,85 @@ tbody tr:hover {
   border-color: color-mix(in srgb, var(--warn) 35%, transparent);
 }
 
+/* ── Restaurar base ─────────────────────────────────────────────────────── */
+
+.restore {
+  border: 1px solid var(--border);
+  border-radius: var(--r-panel);
+  background: var(--surface);
+  padding: 16px;
+}
+.restore-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.restore input[type='file'] {
+  flex: 1;
+  min-width: 200px;
+  font-size: var(--t-sm);
+  font-family: inherit;
+  color: var(--text-2);
+}
+.restore input[type='file']::file-selector-button {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: var(--r-control);
+  padding: 6px 12px;
+  margin-right: 10px;
+  font-size: var(--t-sm);
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color 0.12s var(--ease);
+}
+.restore input[type='file']::file-selector-button:hover {
+  border-color: var(--border-strong);
+}
+.restore button {
+  background: var(--n-000);
+  border: 1px solid var(--n-000);
+  color: var(--n-950);
+  font-weight: 600;
+  font-size: var(--t-sm);
+  font-family: inherit;
+  padding: 7px 16px;
+  border-radius: var(--r-control);
+  cursor: pointer;
+  transition: background 0.12s var(--ease);
+}
+.restore button:hover:not(:disabled) {
+  background: var(--n-120);
+}
+.restore button:disabled {
+  background: transparent;
+  border-color: var(--border);
+  color: var(--text-3);
+  cursor: not-allowed;
+}
+.restore p {
+  margin: 10px 0 0;
+  font-size: var(--t-sm);
+}
+.restore-note {
+  color: var(--text-2);
+  font-variant-numeric: tabular-nums;
+}
+.restore-pend {
+  color: var(--warn);
+  margin: 0 0 14px !important;
+}
+.restore-ok {
+  color: var(--up);
+}
+.restore-err {
+  color: var(--down);
+}
+.restore b {
+  font-weight: 600;
+}
+
 .hint {
   color: var(--text-3);
   font-size: var(--t-sm);

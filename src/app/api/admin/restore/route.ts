@@ -1,5 +1,15 @@
 import { NextResponse } from 'next/server'
-import { createWriteStream, existsSync, renameSync, rmSync, statSync } from 'node:fs'
+import {
+  closeSync,
+  createReadStream,
+  createWriteStream,
+  existsSync,
+  openSync,
+  readSync,
+  renameSync,
+  rmSync,
+  statSync,
+} from 'node:fs'
 import { Readable } from 'node:stream'
 import { pipeline } from 'node:stream/promises'
 import { createGunzip } from 'node:zlib'
@@ -11,6 +21,7 @@ export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 const PART_PATH = `${INCOMING_PATH}.part`
+const RAW_PATH = `${INCOMING_PATH}.raw`
 
 /** Tablas que tiene que traer cualquier base nuestra para considerarla válida. */
 const REQUIRED = ['products', 'prices', 'expansions', 'price_history']
@@ -18,10 +29,13 @@ const REQUIRED = ['products', 'prices', 'expansions', 'price_history']
 /**
  * Sube una base ya construida al volumen.
  *
- *   gzip -c data/pokevault.sqlite > db.gz
+ * Se usa desde el formulario del panel, o a mano:
+ *
  *   curl -X POST https://<tu-app>/api/admin/restore \
- *        -H "Cookie: pc_admin=<token>" \
- *        --data-binary @db.gz
+ *        -H "Cookie: pc_admin=<token>" --data-binary @pokevault.sqlite
+ *
+ * Acepta el fichero tal cual o comprimido con gzip, y da igual cómo llegue:
+ * lo detecta por los bytes del propio fichero.
  *
  * NO reemplaza la base en caliente: cambiarla con la conexión abierta la
  * corrompe. La deja preparada como `.incoming` y el intercambio lo hace
@@ -33,22 +47,55 @@ export async function POST(req: Request) {
   if (!(await isAdmin())) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   if (!req.body) return NextResponse.json({ error: 'Cuerpo vacío' }, { status: 400 })
 
-  rmSync(PART_PATH, { force: true })
+  cleanupPart()
 
-  // Aceptamos el fichero tal cual o comprimido con gzip: 26 MB bajan a ~8.
-  const gzipped = (req.headers.get('content-encoding') ?? '').includes('gzip')
-  const source = Readable.fromWeb(req.body as Parameters<typeof Readable.fromWeb>[0])
-
+  // Dos formas de llegar aquí: el formulario del panel (multipart) o un curl
+  // con el fichero en crudo. Aceptamos las dos.
   try {
-    if (gzipped) {
-      await pipeline(source, createGunzip(), createWriteStream(PART_PATH))
+    const contentType = req.headers.get('content-type') ?? ''
+    let source: Readable
+
+    if (contentType.includes('multipart/form-data')) {
+      const file = (await req.formData()).get('db')
+      if (!(file instanceof File) || file.size === 0) {
+        return NextResponse.json({ error: 'No has elegido ningún fichero' }, { status: 400 })
+      }
+      source = Readable.fromWeb(file.stream() as Parameters<typeof Readable.fromWeb>[0])
     } else {
-      await pipeline(source, createWriteStream(PART_PATH))
+      source = Readable.fromWeb(req.body as Parameters<typeof Readable.fromWeb>[0])
     }
+
+    await pipeline(source, createWriteStream(RAW_PATH))
   } catch (err) {
-    rmSync(PART_PATH, { force: true })
+    cleanupPart()
     return NextResponse.json(
       { error: `No se pudo recibir el fichero: ${(err as Error).message}` },
+      { status: 400 },
+    )
+  }
+
+  // ¿Viene comprimido? Lo decidimos por los bytes mágicos del gzip (1f 8b) y
+  // no por la cabecera: el navegador no manda Content-Encoding al subir un
+  // fichero, así que da igual por dónde haya entrado.
+  try {
+    const magic = Buffer.alloc(2)
+    const fd = openSync(RAW_PATH, 'r')
+    try {
+      readSync(fd, magic, 0, 2, 0)
+    } finally {
+      closeSync(fd)
+    }
+
+    if (magic[0] === 0x1f && magic[1] === 0x8b) {
+      await pipeline(createReadStream(RAW_PATH), createGunzip(), createWriteStream(PART_PATH))
+      rmSync(RAW_PATH, { force: true })
+    } else {
+      renameSync(RAW_PATH, PART_PATH)
+    }
+  } catch (err) {
+    cleanupPart()
+    return NextResponse.json(
+      { error: `El fichero está comprimido pero no se pudo abrir: ${(err as Error).message}` },
       { status: 400 },
     )
   }
@@ -112,11 +159,12 @@ export async function POST(req: Request) {
   }
 }
 
-/** Borra el fichero a medias y los sidecars que haya dejado la validación. */
+/** Borra los ficheros a medias y los sidecars que haya dejado la validación. */
 function cleanupPart() {
   for (const suffix of ['', '-wal', '-shm']) {
     rmSync(`${PART_PATH}${suffix}`, { force: true })
   }
+  rmSync(RAW_PATH, { force: true })
 }
 
 /** Para comprobar si hay una subida esperando al próximo reinicio. */
