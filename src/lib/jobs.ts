@@ -13,6 +13,7 @@
 import { db } from '../db/index'
 import { runIngest } from './ingest'
 import { runMapSets } from './map-sets'
+import { runRefreshSets } from './refresh-sets'
 import { runNamesEn } from './names-en'
 import { runClassify } from './classify'
 import { runBackfillImages } from './backfill-images'
@@ -35,6 +36,10 @@ async function runMantenimiento(log: (msg: string) => void) {
   log('Identificando expansiones nuevas...')
   const mapped = await runMapSets(log)
 
+  // Solo los que no tienen logo: son los únicos que pueden mejorar.
+  log('Refrescando datos de sets sin logo...')
+  await runRefreshSets(log, { soloSinLogo: true })
+
   log('Buscando nombres oficiales en inglés...')
   await runNamesEn(log)
 
@@ -55,6 +60,7 @@ const RUNNERS: Record<JobName, (log: (msg: string) => void) => Promise<void> | v
     if (r.status === 'error') throw new Error(r.error)
   },
   'map-sets': async (log) => void (await runMapSets(log)),
+  'refresh-sets': async (log) => void (await runRefreshSets(log)),
   'names-en': async (log) => void (await runNamesEn(log)),
   classify: (log) => void runClassify(log),
   'backfill-images': async (log) => void (await runBackfillImages(log, 12)),

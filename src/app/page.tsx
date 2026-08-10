@@ -1,6 +1,6 @@
 import { contarPorRegion, getStats, listExpansions, type Region } from '@/db/queries'
 import { eur, fechaCorta, num, setName } from '@/lib/format'
-import { setLogo } from '@/lib/images'
+import { setMark } from '@/lib/images'
 
 export const dynamic = 'force-dynamic'
 
@@ -96,11 +96,12 @@ export default async function Home({
 
           {sets.map((e) => {
             const n = setName(e)
+            const marca = setMark(e)
             return (
               <a className="set-row" key={e.id_expansion} href={`/sets/${e.id_expansion}`}>
                 <span className="set-mark">
-                  {e.logo ? (
-                    <img src={setLogo(e.logo)} alt="" loading="lazy" />
+                  {marca ? (
+                    <img className={marca.tipo} src={marca.src} alt="" loading="lazy" />
                   ) : (
                     <span className="void" />
                   )}

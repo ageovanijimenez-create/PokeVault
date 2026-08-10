@@ -11,7 +11,8 @@
     "map-sets": "tsx src/scripts/map-sets.ts",
     "names-en": "tsx src/scripts/names-en.ts",
     "backfill-images": "tsx src/scripts/backfill-images.ts",
-    "classify": "tsx src/scripts/classify.ts"
+    "classify": "tsx src/scripts/classify.ts",
+    "refresh-sets": "tsx src/scripts/refresh-sets.ts"
   },
   "dependencies": {
     "better-sqlite3": "^13.0.3",

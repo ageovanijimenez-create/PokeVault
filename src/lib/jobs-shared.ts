@@ -9,6 +9,7 @@
 export const JOB_NAMES = [
   'ingest',
   'map-sets',
+  'refresh-sets',
   'names-en',
   'classify',
   'backfill-images',
@@ -20,6 +21,7 @@ export type JobName = (typeof JOB_NAMES)[number]
 export const JOB_LABELS: Record<JobName, string> = {
   ingest: 'Actualizar precios',
   'map-sets': 'Identificar expansiones',
+  'refresh-sets': 'Refrescar logos y datos de set',
   'names-en': 'Nombres japoneses en inglés',
   classify: 'Clasificar expansiones',
   'backfill-images': 'Descargar imágenes',

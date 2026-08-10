@@ -214,8 +214,11 @@ h2.section {
 .index {
   border: 1px solid var(--border);
   border-radius: var(--r-panel);
-  overflow: hidden;
   background: var(--surface);
+  /* `clip` y no `hidden`: recorta igual las esquinas, pero `hidden` convierte
+     esto en un scroll container y entonces la cabecera sticky deja de
+     referirse a la ventana — se descolocaba y tapaba la primera fila. */
+  overflow: clip;
 }
 .index-head,
 .set-row {
@@ -259,6 +262,12 @@ h2.section {
   max-width: 100%;
   max-height: 30px;
   object-fit: contain;
+}
+/* El símbolo es un icono cuadrado y pequeño: si se escala como un logo
+   apaisado queda desproporcionado al lado de los demás. */
+.set-mark img.symbol {
+  max-height: 20px;
+  max-width: 20px;
 }
 .set-mark .void {
   width: 18px;

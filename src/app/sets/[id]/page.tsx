@@ -2,7 +2,7 @@ import { notFound } from 'next/navigation'
 import { getExpansion, getProducts } from '@/db/queries'
 import { ProductTable } from '@/components/ProductTable'
 import { fecha, num, setName } from '@/lib/format'
-import { setLogo } from '@/lib/images'
+import { setMark } from '@/lib/images'
 
 export const dynamic = 'force-dynamic'
 
@@ -32,7 +32,10 @@ export default async function SetPage({
       </div>
 
       <div className="set-head">
-        {expansion.logo && <img className="set-logo" src={setLogo(expansion.logo)} alt="" />}
+        {(() => {
+          const marca = setMark(expansion)
+          return marca ? <img className={`set-logo ${marca.tipo}`} src={marca.src} alt="" /> : null
+        })()}
         <div>
           <h1>{nombre.main}</h1>
           <div className="sub">
