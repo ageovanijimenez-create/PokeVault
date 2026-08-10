@@ -310,12 +310,11 @@ De ellas hay **196 identificadas: 161 occidentales y 35 japonesas**.
   TCGplayer sí, pero cruzar sellado EU↔US por nombre da un 24% de acierto y
   con falsos positivos (la ETB de Pokémon Center se confunde con la normal),
   así que no se ha hecho. Hace falta otra idea.
-- **El enlace a Cardmarket es una búsqueda, no la ficha directa.** La URL de
-  ficha es `/Products/Singles/{Expansion-Slug}/{Producto-Slug}` y no se puede
-  construir: el slug lleva el nombre inglés de la expansión, que los ficheros
-  públicos no traen, y no existe ninguna ruta por `idProduct`. La búsqueda por
-  el nombre exacto del producto —que es literalmente el nombre de Cardmarket—
-  cae en la ficha y nunca da 404.
+- **Los enlaces a Cardmarket van directos a la ficha**, vía su redirección
+  oficial por id: `/{lang}/Pokemon/Products?idProduct={id}`. Es la misma que
+  usa Scryfall. No hay que construir el slug de la ficha —que lleva el nombre
+  inglés de la expansión y no viene en los ficheros públicos—, porque el
+  `idProduct` ya es la clave primaria de nuestra tabla de productos.
 - **SQLite** es para el prototipo. En Railway hace falta un volumen persistente
   (el disco es efímero) o, mejor, pasar a Postgres: el SQL es estándar a
   propósito y está todo en `src/db/`.

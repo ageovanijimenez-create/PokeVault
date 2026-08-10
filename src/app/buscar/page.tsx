@@ -89,7 +89,7 @@ export default async function Buscar({ searchParams }: { searchParams: Promise<{
                   <td>
                     <a
                       className="cm"
-                      href={productUrl(p.name)}
+                      href={productUrl(p.id_product)}
                       target="_blank"
                       rel="noopener noreferrer"
                     >

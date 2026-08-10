@@ -493,6 +493,19 @@ tbody tr:hover {
   font-size: var(--t-base);
   margin-bottom: 4px;
 }
+.empty code {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-family: ui-monospace, 'SF Mono', 'Cascadia Mono', Menlo, monospace;
+  font-size: var(--t-xs);
+  color: var(--text);
+}
+.empty b {
+  color: var(--text);
+  font-weight: 600;
+}
 
 /* ── Panel privado ──────────────────────────────────────────────────────── */
 

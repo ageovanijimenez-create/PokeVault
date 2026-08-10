@@ -37,8 +37,23 @@ export default function Home() {
 
       {sets.length === 0 ? (
         <div className="empty" style={{ marginTop: 24 }}>
-          <strong>Todavía no hay catálogo</strong>
-          Lanza <code>npm run ingest</code> y después <code>npm run map-sets</code>.
+          {stats.singles + stats.sealed > 0 ? (
+            // Hay productos pero ninguna expansión identificada. Decir "no hay
+            // catálogo" aquí sería mentira y manda a buscar el problema donde
+            // no está: el catálogo está entero, solo le falta el mapeo.
+            <>
+              <strong>El catálogo está, pero sin agrupar por sets</strong>
+              Hay {num(stats.singles + stats.sealed)} productos cargados y el buscador ya los
+              encuentra. Lo que falta es identificar las expansiones: entra en{' '}
+              <code>/admin</code> y pulsa <b>Mantenimiento completo</b>.
+            </>
+          ) : (
+            <>
+              <strong>Todavía no hay catálogo</strong>
+              La primera ingesta lo carga sola en unos minutos. Para adelantarla, entra en{' '}
+              <code>/admin</code> y pulsa <b>Actualizar precios</b>.
+            </>
+          )}
         </div>
       ) : (
         <div className="index" style={{ marginTop: 20 }}>

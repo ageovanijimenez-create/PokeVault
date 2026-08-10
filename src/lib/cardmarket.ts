@@ -107,15 +107,18 @@ export async function fetchPrices(game?: number) {
 }
 
 /**
- * Enlace a la ficha del producto en Cardmarket.
+ * Enlace directo a la ficha del producto en Cardmarket.
  *
- * La URL directa de una ficha es
- * `/Products/Singles/{Expansion-Slug}/{Producto-Slug}` y **no se puede
- * construir**: el slug usa el nombre inglés de la expansión, que los ficheros
- * públicos no traen (solo dan `idExpansion`). Tampoco existe una ruta por id.
+ * Cardmarket mantiene una redirección oficial por id de producto:
  *
- * La búsqueda por el nombre exacto del producto sí funciona siempre, porque el
- * nombre que guardamos es literalmente el suyo. Cae en la ficha o a un clic.
+ *   https://www.cardmarket.com/es/Pokemon/Products?idProduct=895789
+ *
+ * Es la misma que usa Scryfall en sus enlaces, y evita tener que construir el
+ * slug de la ficha —que lleva el nombre inglés de la expansión y no viene en
+ * los ficheros públicos—. El `idProduct` sí lo tenemos: es literalmente la
+ * clave primaria de nuestra tabla de productos.
+ *
+ * `referrer` es cortesía: le dice a Cardmarket de dónde le llega el tráfico.
  */
-export const productUrl = (name: string, locale = 'es') =>
-  `https://www.cardmarket.com/${locale}/Pokemon/Products/Search?searchString=${encodeURIComponent(name)}`
+export const productUrl = (idProduct: number, locale = 'es') =>
+  `https://www.cardmarket.com/${locale}/Pokemon/Products?idProduct=${idProduct}&referrer=pokevault`

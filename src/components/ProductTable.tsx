@@ -68,7 +68,12 @@ export function ProductTable({
                 </>
               )}
               <td>
-                <a className="cm" href={productUrl(p.name)} target="_blank" rel="noopener noreferrer">
+                <a
+                  className="cm"
+                  href={productUrl(p.id_product)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
                   Cardmarket ↗
                 </a>
               </td>
