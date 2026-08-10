@@ -1,13 +1,27 @@
-import { getStats, listExpansions } from '@/db/queries'
+import { contarPorRegion, getStats, listExpansions, type Region } from '@/db/queries'
 import { eur, fechaCorta, num, setName } from '@/lib/format'
 import { setLogo } from '@/lib/images'
 
 export const dynamic = 'force-dynamic'
 
-export default function Home() {
+const REGIONES: { id: Region; etiqueta: string }[] = [
+  { id: 'todo', etiqueta: 'Todos' },
+  { id: 'occidente', etiqueta: 'Occidente' },
+  { id: 'japon', etiqueta: 'Japón y Corea' },
+]
+
+export default async function Home({
+  searchParams,
+}: {
+  searchParams: Promise<{ region?: string }>
+}) {
+  const { region: pedida } = await searchParams
+  const region: Region = REGIONES.some((r) => r.id === pedida) ? (pedida as Region) : 'todo'
+
   const stats = getStats()
+  const conteo = contarPorRegion()
   // Ya vienen filtrados a occidente + Japón: ver listExpansions().
-  const sets = listExpansions()
+  const sets = listExpansions(region)
 
   return (
     <>
@@ -56,7 +70,20 @@ export default function Home() {
           )}
         </div>
       ) : (
-        <div className="index" style={{ marginTop: 20 }}>
+        <>
+        <div className="tabs" style={{ marginTop: 20, marginBottom: 12 }}>
+          {REGIONES.map((r) => (
+            <a
+              key={r.id}
+              className={`tab ${region === r.id ? 'on' : ''}`}
+              href={r.id === 'todo' ? '/' : `/?region=${r.id}`}
+            >
+              {r.etiqueta} ({num(conteo[r.id])})
+            </a>
+          ))}
+        </div>
+
+        <div className="index">
           <div className="index-head">
             <span />
             <span>Set</span>
@@ -91,6 +118,7 @@ export default function Home() {
             )
           })}
         </div>
+        </>
       )}
     </>
   )

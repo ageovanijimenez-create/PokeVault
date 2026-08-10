@@ -59,7 +59,18 @@ export function getStats() {
  * podemos identificar —chinas, promos sueltas, agrupaciones raras— quedan
  * fuera de la web pública y solo aparecen en el panel.
  */
-export function listExpansions(): ExpansionRow[] {
+/**
+ * Región por la que se puede filtrar la portada.
+ *
+ * Corea no es una opción aparte a propósito: los sets coreanos son los mismos
+ * que los japoneses y en Cardmarket comparten producto, así que van juntos.
+ */
+export type Region = 'todo' | 'occidente' | 'japon'
+
+export function listExpansions(region: Region = 'todo'): ExpansionRow[] {
+  const filtro =
+    region === 'occidente' ? `AND e.lang = 'en'` : region === 'japon' ? `AND e.lang = 'ja'` : ''
+
   return db
     .prepare(
       `SELECT e.*,
@@ -69,12 +80,26 @@ export function listExpansions(): ExpansionRow[] {
          FROM expansions e
          JOIN products  p  ON p.id_expansion = e.id_expansion
          LEFT JOIN prices pr ON pr.id_product = p.id_product
-        WHERE e.tcgdex_set_id IS NOT NULL
+        WHERE e.tcgdex_set_id IS NOT NULL ${filtro}
         GROUP BY e.id_expansion
        HAVING singles + sealed > 0
         ORDER BY e.release_date IS NULL, e.release_date DESC, e.id_expansion DESC`,
     )
     .all() as ExpansionRow[]
+}
+
+/** Cuántos sets hay en cada región, para poder etiquetar los filtros. */
+export function contarPorRegion() {
+  const row = db
+    .prepare(
+      `SELECT COUNT(*) AS todo,
+              COUNT(*) FILTER (WHERE lang = 'en') AS occidente,
+              COUNT(*) FILTER (WHERE lang = 'ja') AS japon
+         FROM expansions
+        WHERE tcgdex_set_id IS NOT NULL`,
+    )
+    .get() as { todo: number; occidente: number; japon: number }
+  return row
 }
 
 export function getExpansion(id: number): ExpansionRow | undefined {
